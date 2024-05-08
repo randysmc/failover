@@ -1,0 +1,41 @@
+
+ip route add 192.168.1.0/27 via 192.168.18.1 dev enp9s0 metric 10
+ip route add 192.168.1.0/27 via 192.168. dev enp8s0 metric 20
+
+
+script failover
+
+
+#!/bin/bash
+
+# IP de la Máquina B
+TARGET_IP="192.168.1.1"
+
+# Comprobación de la conectividad con la Máquina B
+if ! ping -c 1 $TARGET_IP > /dev/null 2>&1; then
+    echo "Fallo detectado en la ruta principal hacia $TARGET_IP. Activando failover..."
+    # Incrementar la métrica de la ruta principal para que la ruta secundaria tome el control
+    ip route replace 192.168.1.0/27 via 192.168.18.1 dev eth0 metric 30
+    ip route replace 192.168.1.0/27 via 192.168.14.1 dev eth1 metric 10
+else
+    echo "Ruta principal hacia $TARGET_IP está funcionando correctamente."
+    # Asegurarse de que la métrica de las rutas vuelva a la configuración original si la principal está funcionando
+    ip route replace 192.168.1.0/27 via 192.168.18.1 dev eth0 metric 10
+    ip route replace 192.168.1.0/27 via 192.168.14.1 dev eth1 metric 20
+fi
+
+
+
+sudo chmod +x /usr/local/bin/check_network.sh
+
+
+
+
+sudo nano /usr/local/bin/check_network.sh
+
+Configurar Cron para ejecutar el script:
+	crontab -e
+
+Y añade una línea como la siguiente para ejecutarlo cada minut
+	* * * * * /usr/local/bin/check_network.sh >> /var/log/check_network.log 2>&1
+
